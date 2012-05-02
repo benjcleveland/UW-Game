@@ -1,0 +1,8 @@
+Debug Controls
+F4 - Enable/disable debug text
+F5 - Enable/disable lighting
+F7 - Enable/disable background music
+F8 - Enable/disable A* debugging - loops through all the NPC's
+L - Cycle through grid layers
+n - next camera
+p - prevous camera

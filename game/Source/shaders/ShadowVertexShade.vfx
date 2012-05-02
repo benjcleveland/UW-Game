@@ -1,0 +1,58 @@
+
+
+// world view projections matrix
+float4 g_WorldViewPosMatrix0    : register(c0);
+float4 g_WorldViewPosMatrix1    : register(c1);
+float4 g_WorldViewPosMatrix2    : register(c2);
+float4 g_WorldViewPosMatrix3    : register(c3);
+
+// light position matrix
+float4 g_LightPosMatrix0        : register(c4);
+float4 g_LightPosMatrix1        : register(c5);
+float4 g_LightPosMatrix2        : register(c6);
+
+float3 g_LightNormalMatrix0     : register(c7);
+float3 g_LightNormalMatrix1     : register(c8);
+float3 g_LightNormalMatrix2     : register(c9);
+
+float3 g_CameraPosition         : register(c10);
+float4 g_AmbientColor           : register(c11);
+
+float4 g_DirectionalColor       : register(c12);
+float3 g_DirectionalDir         : register(c13);
+
+float4 g_PointColor             : register(c14);
+float3 g_PointPos               : register(c15);
+float4 g_PointAttenuationRange  : register(c16);
+float4 g_SpecularPowerFogRanges : register(c17);
+
+float4x4 g_lightViewPosMatrix	: register(c18);
+
+struct VS_INPUT
+{
+    float3 position  : POSITION;
+    float3 normal    : NORMAL;
+};
+
+struct VS_OUTPUT
+{
+	float4 position : POSITION; 
+	float2 depth	: TEXCOORD0;
+   
+};
+
+VS_OUTPUT main(VS_INPUT input)
+{
+    VS_OUTPUT result;
+    
+    const float4 position1 = float4(input.position, 1);
+    
+    result.position.x = dot(position1, g_WorldViewPosMatrix0);
+    result.position.y = dot(position1, g_WorldViewPosMatrix1);
+    result.position.z = dot(position1, g_WorldViewPosMatrix2);
+    result.position.w = dot(position1, g_WorldViewPosMatrix3);
+    
+    result.depth.xy = result.position.zw;
+
+    return result;
+}

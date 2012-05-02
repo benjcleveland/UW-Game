@@ -1,0 +1,24 @@
+Player controls
+
+W 					- Walk forward
+Shift + W				- run forward
+S 					- slow down / stop the player
+D 					- rotates player right
+A 					- rotates player left
+mouse Left click 			- move player camera left, right, up, and down around player
+mouse middle button scroll forward 	- zoom the player camera closer to the player
+mouse middle button scroll backward 	- zoon the player camera away from the player
+space bar 				- throw projectile
+
+n 					- next camera
+p 					- previous camera
+
+Debug Camera Controls
+Q 					- moves camera up
+Z 					- moves camera down
+Up Arrow 				- moves camera forward
+Down Arrow 				- moves camera backward
+Right Arrow 				- rotates camera right
+Left Arrow 				- rotates camera left
+PgUp 					- tilts the camera up
+PgDn 					- tilts the camera down

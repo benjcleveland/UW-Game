@@ -1,0 +1,104 @@
+// world view projections matrix
+float4x4 g_WorldViewPosMatrix0    : register(c0);
+//float4 g_WorldViewPosMatrix1    : register(c1);
+//float4 g_WorldViewPosMatrix2    : register(c2);
+//float4 g_WorldViewPosMatrix3    : register(c3);
+
+// light position matrix
+float4 g_LightPosMatrix0        : register(c4);
+float4 g_LightPosMatrix1        : register(c5);
+float4 g_LightPosMatrix2        : register(c6);
+
+float3 g_LightNormalMatrix0     : register(c7);
+float3 g_LightNormalMatrix1     : register(c8);
+float3 g_LightNormalMatrix2     : register(c9);
+
+float3 g_CameraPosition         : register(c10);
+float4 g_AmbientColor           : register(c11);
+
+float4 g_DirectionalColor       : register(c12);
+float3 g_DirectionalDir         : register(c13);
+
+float4 g_PointColor             : register(c14);
+float3 g_PointPos               : register(c15);
+float4 g_PointAttenuationRange  : register(c16);
+float4 g_SpecularPowerFogRanges : register(c17);
+
+const int MAX_NUM_BONES = 8;		// this needs to match with animated mesh
+float4x4 g_BoneMatrices[8]		: register(c18);
+
+
+
+struct VS_INPUT
+{
+    float3 position    : POSITION;
+    float3 normal      : NORMAL;
+    float3 boneweights : BLENDWEIGHT; 
+    float2 boneindices : BLENDINDICES;
+};
+
+struct VS_OUTPUT
+{
+    float4 position  : POSITION;
+	float3 normal	 : TEXCOORD1;
+	float3 direction : TEXCOORD2;
+	float3 viewDir	 : TEXCOORD3;
+    float4 diffuse   : COLOR0;
+    float4 specular  : COLOR1;
+    float2 depth	 : TEXCOORD0;
+};
+
+VS_OUTPUT main(VS_INPUT input)
+{
+    VS_OUTPUT result;
+    
+     float4 position1 = 0;
+     float4 origPos = float4(input.position, 1);
+     float4 origNorm = float4(input.normal, 0);
+     float4 normal1 = 0;
+
+	float weights[3] = (float[3])input.boneweights;
+
+	int num_bones = 2;
+	if( input.boneindices.x == MAX_NUM_BONES )
+		num_bones = 1;	
+	
+	//for(int i = 0 ; i < num_bones; ++i)
+	{
+		position1 += mul(g_BoneMatrices[input.boneindices.x], origPos ) * weights[0];//input.boneindices.x]; 
+		normal1 += mul(g_BoneMatrices[input.boneindices.x], origNorm ) * weights[0];// + input.boneindices.x];
+		position1 += mul(g_BoneMatrices[1 + input.boneindices.x], origPos ) * weights[1];//input.boneindices.x]; 
+		normal1 += mul(g_BoneMatrices[1 + input.boneindices.x], origNorm ) * weights[1];// + input.boneindices.x];
+	}
+		
+		
+	result.position = mul(position1, g_WorldViewPosMatrix0 );
+	
+    const float3 lPosition =
+    {
+        dot(position1, g_LightPosMatrix0),
+        dot(position1, g_LightPosMatrix1),
+        dot(position1, g_LightPosMatrix2),
+    };
+
+    const float3 lNormal = normalize(
+        float3(
+            dot(normal1.xyz, g_LightPosMatrix0.xyz),
+            dot(normal1.xyz, g_LightPosMatrix1.xyz),
+            dot(normal1.xyz, g_LightPosMatrix2.xyz)
+        )
+    );
+
+
+    const float3 viewVector           = g_CameraPosition - lPosition;   
+    result.viewDir = normalize(viewVector);
+ 	
+    result.diffuse  = g_AmbientColor;
+    result.specular = 0;
+	result.direction = normalize(-g_DirectionalDir) ;
+	result.normal = lNormal;
+
+	result.depth.xy = result.position.zw;
+
+    return result;
+}

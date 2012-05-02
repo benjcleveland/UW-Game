@@ -1,0 +1,140 @@
+// world view projections matrix
+float4 g_WorldViewPosMatrix0    : register(c0);
+float4 g_WorldViewPosMatrix1    : register(c1);
+float4 g_WorldViewPosMatrix2    : register(c2);
+float4 g_WorldViewPosMatrix3    : register(c3);
+
+// light position matrix
+float4 g_LightPosMatrix0        : register(c4);
+float4 g_LightPosMatrix1        : register(c5);
+float4 g_LightPosMatrix2        : register(c6);
+
+float3 g_LightNormalMatrix0     : register(c7);
+float3 g_LightNormalMatrix1     : register(c8);
+float3 g_LightNormalMatrix2     : register(c9);
+
+float3 g_CameraPosition         : register(c10);
+float4 g_AmbientColor           : register(c11);
+
+float4 g_DirectionalColor       : register(c12);
+float3 g_DirectionalDir         : register(c13);
+
+float4 g_PointColor             : register(c14);
+float3 g_PointPos               : register(c15);
+float4 g_PointAttenuationRange  : register(c16);
+float4 g_SpecularPowerFogRanges : register(c17);
+
+void AccumulateLight(
+    inout float4 diffuse, inout float4 specular,
+    in float3 Normal, in float3 ViewDir, in float Power,
+    in float3 LightDir, in float4 LightColor)
+{
+    // Diffuse
+	
+    const float NdotLorig = dot(Normal, LightDir);
+    const float Lambert = max(NdotLorig, 0);
+
+    diffuse += Lambert * LightColor;
+
+    // Specular
+	// specular is not used for the mesh
+    if (NdotLorig > 0)
+    {
+        const float3 Reflection = 2 * Normal * NdotLorig - LightDir;
+        const float RdotV = dot(Reflection, ViewDir);
+        if (RdotV > 0)
+        {
+			// Work around compiler error with a pragma
+#			pragma warning(disable: 3571) // pow(f, e) will not work for negative f, use abs(f) or conditionally handle negative values if you expect them
+            specular += pow(RdotV, Power) * LightColor;
+        }
+    }
+}
+
+struct VS_INPUT
+{
+    float3 position  : POSITION;
+    float3 normal    : NORMAL;
+    float2 texCoords : TEXCOORD0;
+};
+
+struct VS_OUTPUT
+{
+    float4 position  : POSITION;
+    float3 normal	 : TEXCOORD1;
+	float3 direction : TEXCOORD2;
+	float3 viewDir	 : TEXCOORD3;
+    float4 diffuse   : COLOR0;
+    float4 specular  : COLOR1;
+    float2 texCoords : TEXCOORD0;
+};
+
+
+VS_OUTPUT main(VS_INPUT input)
+{
+    VS_OUTPUT result;
+    
+    const float4 position1 = float4(input.position, 1);
+    
+    result.position.x = dot(position1, g_WorldViewPosMatrix0);
+    result.position.y = dot(position1, g_WorldViewPosMatrix1);
+    result.position.z = dot(position1, g_WorldViewPosMatrix2);
+    result.position.w = dot(position1, g_WorldViewPosMatrix3);
+
+    const float3 lPosition =
+    {
+        dot(position1, g_LightPosMatrix0),
+        dot(position1, g_LightPosMatrix1),
+        dot(position1, g_LightPosMatrix2),
+    };
+
+    const float3 lNormal = normalize(
+        float3(
+            dot(input.normal, g_LightPosMatrix0.xyz),
+            dot(input.normal, g_LightPosMatrix1.xyz),
+            dot(input.normal, g_LightPosMatrix2.xyz)
+        )
+    );
+
+
+    const float3 viewVector           = g_CameraPosition - lPosition;
+    const float3 viewVectorNormalized = normalize(viewVector);
+    const float  viewDistance         = length(viewVector);
+	
+    result.diffuse  = g_AmbientColor;
+    result.specular = 0;
+
+   
+
+//	float ndotl = dot(lNormal, -g_DirectionalDir);
+//	result.diffuse += ndotl * g_DirectionalColor;
+	 // Directional light
+    AccumulateLight(
+        result.diffuse, result.specular,
+        lNormal, viewVectorNormalized, g_SpecularPowerFogRanges.x,
+        normalize(-g_DirectionalDir), g_DirectionalColor);
+
+    // Point light point light not implimented
+
+/*    const float3 pointDir           = g_PointPos - lPosition;
+    const float3 pointDirNormalized = normalize(pointDir);
+    const float  pointDistance      = length(pointDir);
+    const float  pointAttenuation   = (pointDistance < g_PointAttenuationRange.w? 1.0f: 0.0f)
+                                     / dot(float3(1, pointDistance, pointDistance * pointDistance), g_PointAttenuationRange.xyz);
+*/
+/*    AccumulateLight(
+        result.diffuse, result.specular,
+        lNormal, lTangent, useTangent, viewVectorNormalized, g_SpecularPowerFogRanges.x,
+        pointDirNormalized, pointAttenuation * g_PointColor);
+*/
+  
+    result.viewDir = normalize(viewVector);
+    
+	result.direction = normalize(-g_DirectionalDir) ;
+	result.normal = lNormal;
+    result.texCoords = input.texCoords;
+
+
+
+    return result;
+}
